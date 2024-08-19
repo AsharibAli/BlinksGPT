@@ -102,7 +102,7 @@ export default function UnlockBlinks() {
           <WalletMultiButton /> <br />
 
           <Button onClick={handlePayment} disabled={!connected || transactionStatus === "Transaction in progress..."}>
-            Pay 0.1 SOL to Access BlinksGPT
+            Pay 0.1 testnet SOL to Access BlinksGPT
           </Button>
 
           {transactionStatus && (
