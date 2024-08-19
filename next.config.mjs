@@ -14,13 +14,12 @@ const nextConfig = {
               img-src 'self' https://raw.githubusercontent.com;
               connect-src 'self' ${process.env.NEXT_PUBLIC_FLOWISE_API_HOST} ${process.env.NEXT_PUBLIC_WEBSOCKET_URL} https://api.testnet.solana.com wss://api.testnet.solana.com;
               media-src 'self' https://cdn.jsdelivr.net;
-              frame-src 'self' https://connect.solflare.com; 
               frame-ancestors 'self' https://dscvr.one;
               object-src 'none';
               base-uri 'self';
             `
-              .replace(/\s{2,}/g, " ")
-              .trim(), // Remove excess whitespace and trim
+            .replace(/\s{2,}/g, " ")
+            .trim(), // Remove excess whitespace and trim
           },
         ],
       },
