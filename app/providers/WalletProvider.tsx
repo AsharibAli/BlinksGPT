@@ -14,6 +14,7 @@ const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
   const wallets = [
     new PhantomWalletAdapter(),
+    new SolflareWalletAdapter()
     // Add other wallets here if needed
   ];
 
