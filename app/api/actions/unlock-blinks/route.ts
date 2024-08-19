@@ -78,7 +78,7 @@ export const POST = async (req: Request) => {
     }
 
     const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL! || clusterApiUrl("testnet")
+      process.env.NEXT_PUBLIC_SOLANA_RPC_URL! || clusterApiUrl("mainnet-beta")
     );
 
     const transferSolInstruction = SystemProgram.transfer({
