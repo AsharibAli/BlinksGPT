@@ -12,11 +12,7 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   const network = clusterApiUrl("mainnet-beta"); // Change to "mainnet-beta" or "testnet" as required
 
-  const wallets = [
-    new PhantomWalletAdapter(),
-    new SolflareWalletAdapter()
-    // Add other wallets here if needed
-  ];
+  const wallets = [new SolflareWalletAdapter()];
 
   return (
     <ConnectionProvider endpoint={network}>
