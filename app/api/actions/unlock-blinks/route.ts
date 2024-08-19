@@ -35,7 +35,7 @@ export const GET = async (req: Request) => {
 
     const payload: ActionGetResponse = {
       title: "Unlock BlinksGPT",
-      icon: new URL("/solana_icon.jpg", requestUrl.origin).toString(),
+      icon: new URL("/solana.webp", requestUrl.origin).toString(),
       description: "Pay 0.1 SOL to access BlinksGPT.",
       label: "Transfer",
       links: {
