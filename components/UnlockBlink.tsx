@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl, Connection, Transaction } from "@solana/web3.js";
+import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
+import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
 import BlinksGPT from "@/components/BlinksGPT";
 
 export default function UnlockBlinks() {
@@ -13,16 +15,49 @@ export default function UnlockBlinks() {
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { publicKey, connected } = useWallet();
+  
+  // Refs for CanvasClient and ready state
+  const canvasClient = useRef<CanvasClient | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Initialize the CanvasClient and register the wallet
+    const initCanvasClient = async () => {
+      try {
+        if (document.referrer) {
+          canvasClient.current = new CanvasClient();
+          registerCanvasWallet(canvasClient.current);
+          
+          const response = await canvasClient.current.ready();
+          setIsReady(canvasClient.current.isReady);
+
+          // Add additional initialization logic if needed
+        } else {
+          throw new Error("Referrer is not defined, cannot initialize CanvasClient.");
+        }
+      } catch (error) {
+        console.error("Error initializing CanvasClient:", error);
+        setErrorMessage("Failed to initialize. Please ensure this app is embedded correctly.");
+      }
+    };
+
+    initCanvasClient();
+    setIsMounted(true);
+
+    return () => {
+      // Cleanup on unmount
+      if (canvasClient.current) {
+        canvasClient.current.destroy();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('paymentToken');
     const userPublicKey = localStorage.getItem('userPublicKey');
     if (storedToken && userPublicKey === publicKey?.toBase58()) {
-      // Verify the token by sending it back to the server or check signature
-      // Assuming simple verification by checking stored token
       setAccessGranted(true);
     }
-    setIsMounted(true);
   }, [publicKey]);
 
   const handlePayment = async () => {
@@ -99,7 +134,9 @@ export default function UnlockBlinks() {
         <div className="flex flex-col items-center justify-center h-screen">
           <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-          <WalletMultiButton /> <br />
+          {!isReady && <p>Loading...</p>}
+
+          {isReady && <WalletMultiButton />} <br />
 
           <Button onClick={handlePayment} disabled={!connected || transactionStatus === "Transaction in progress..."}>
             Pay 0.1 SOL to Access BlinksGPT
