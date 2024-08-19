@@ -52,7 +52,7 @@ export default function UnlockBlinks() {
         // Sign the transaction with the user's wallet
         const signedTx = await window.solana.signTransaction(tx);
 
-        const connection = new Connection(clusterApiUrl("testnet"), "confirmed");
+        const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed");
 
         // Send the signed transaction
         const signature = await connection.sendRawTransaction(signedTx.serialize());
