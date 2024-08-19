@@ -12,7 +12,7 @@ const nextConfig = {
               script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
               style-src 'self' 'unsafe-inline';
               img-src 'self' https://raw.githubusercontent.com;
-              connect-src 'self' ${process.env.NEXT_PUBLIC_FLOWISE_API_HOST} ${process.env.NEXT_PUBLIC_WEBSOCKET_URL} ${process.env.NEXT_PUBLIC_SOLANA_RPC_URL};
+              connect-src 'self' ${process.env.NEXT_PUBLIC_FLOWISE_API_HOST} ${process.env.NEXT_PUBLIC_WEBSOCKET_URL} https://api.testnet.solana.com wss://api.testnet.solana.com;
               media-src 'self' https://cdn.jsdelivr.net;
               frame-ancestors 'self' https://dscvr.one;
               object-src 'none';
