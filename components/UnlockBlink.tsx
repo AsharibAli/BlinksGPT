@@ -6,7 +6,7 @@ import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
 import { Connection, Transaction } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
-import "@solana/wallet-adapter-react-ui/styles.css"; // For styling
+import "@solana/wallet-adapter-react-ui/styles.css"; // For wallet styles
 
 export default function UnlockBlinks() {
   const [isReady, setIsReady] = useState(false);
@@ -26,9 +26,8 @@ export default function UnlockBlinks() {
     const startClient = async () => {
       const response = await client.ready();
       if (response) {
-        setIsReady(client.isReady);
+        setIsReady(true); // Set canvas as ready
         setUserId(response.untrusted.user?.id || null); // Use `id` instead of `publicKey`
-        setConnected(true); // Mark the user as connected after they select the wallet in DSCVR Canvas
       }
       client.resize();
     };
@@ -52,6 +51,19 @@ export default function UnlockBlinks() {
       setAccessGranted(true);
     }
   }, [userId]);
+
+  const handleConnectWallet = async () => {
+    try {
+      if (canvasClientRef.current) {
+        // Trigger the connection via DSCVR's Canvas Wallet Adapter
+        await canvasClientRef.current.ready();
+        setConnected(true);
+      }
+    } catch (error) {
+      setErrorMessage("Failed to connect wallet. Please try again.");
+      console.error("Wallet connection error:", error);
+    }
+  };
 
   const handlePayment = async () => {
     if (!connected) {
@@ -128,7 +140,7 @@ export default function UnlockBlinks() {
           <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
           {!connected ? (
-            <Button onClick={() => alert("Please connect your wallet through the DSCVR interface.")}>
+            <Button onClick={handleConnectWallet}>
               Connect Wallet
             </Button>
           ) : (
