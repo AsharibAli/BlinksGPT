@@ -4,8 +4,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
+import { useWallet, WalletProvider, ConnectionProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Connection, Transaction } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
+
+// Add these imports for wallet adapters
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { clusterApiUrl } from "@solana/web3.js";
+
+// Add CSS for wallet connection
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
@@ -13,8 +22,7 @@ export default function UnlockBlinks() {
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [canvasClient, setCanvasClient] = useState<CanvasClient | null>(null);
-  const [userId, setUserId] = useState<string | null>(null); // Store the user's ID or other unique identifier
-  const [connected, setConnected] = useState(false); // Track the wallet connection status
+  const { publicKey, connected } = useWallet();
 
   useEffect(() => {
     // Initialize CanvasClient and register the canvas wallet
@@ -27,9 +35,7 @@ export default function UnlockBlinks() {
       const response = await client.ready();
       if (response) {
         console.log("Canvas Client ready:", response);
-        // Use a different property, like id, to identify the user
-        setUserId(response.untrusted.user?.id || null);
-        setConnected(true);
+        // The handshake with DSCVR is complete; handle user data if necessary
       }
     };
 
@@ -47,12 +53,12 @@ export default function UnlockBlinks() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem("paymentToken");
-    const storedUserId = localStorage.getItem("userId");
-    if (storedToken && storedUserId === userId) {
+    const userPublicKey = localStorage.getItem("userPublicKey");
+    if (storedToken && userPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
     setIsMounted(true);
-  }, [userId]);
+  }, [publicKey]);
 
   const handlePayment = async () => {
     if (!connected) {
@@ -69,7 +75,7 @@ export default function UnlockBlinks() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ account: userId }),
+        body: JSON.stringify({ account: publicKey?.toBase58() }),
       });
 
       if (response.ok) {
@@ -81,7 +87,7 @@ export default function UnlockBlinks() {
         // Sign the transaction with the user's wallet
         const signedTx = await window.solana.signTransaction(tx);
 
-        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.testnet.solana.com", "confirmed");
+        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl("devnet"), "confirmed");
 
         // Send the signed transaction
         const signature = await connection.sendRawTransaction(signedTx.serialize());
@@ -103,7 +109,7 @@ export default function UnlockBlinks() {
           // Delay granting access by 5 seconds
           setTimeout(() => {
             localStorage.setItem("paymentToken", token); // Store the secure token
-            localStorage.setItem("userId", userId!); // Store the user's ID for verification
+            localStorage.setItem("userPublicKey", publicKey?.toBase58()!); // Store the user's public key for verification
             setAccessGranted(true);
           }, 5000);
         }
@@ -122,30 +128,44 @@ export default function UnlockBlinks() {
 
   // Separate rendering logic based on accessGranted state
   return (
-    <>
-      {!accessGranted ? (
-        <div className="flex flex-col items-center justify-center h-screen">
-          <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
+    <ConnectionProvider endpoint={clusterApiUrl("devnet")}>
+      <WalletProvider wallets={[new PhantomWalletAdapter()]} autoConnect>
+        <WalletModalProvider>
+          <>
+            {!accessGranted ? (
+              <div className="flex flex-col items-center justify-center h-screen">
+                <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-          <Button onClick={handlePayment} disabled={!connected || transactionStatus === "Transaction in progress..."}>
-            Pay 0.1 SOL to Access BlinksGPT
-          </Button>
+                {!connected && (
+                  <div>
+                    <WalletMultiButton />
+                  </div>
+                )}
 
-          {transactionStatus && (
-            <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
-              {transactionStatus}
-            </p>
-          )}
+                {connected && (
+                  <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
+                    Pay 0.1 SOL to Access BlinksGPT
+                  </Button>
+                )}
 
-          {errorMessage && (
-            <p className="mt-2 text-red-500">
-              {errorMessage}
-            </p>
-          )}
-        </div>
-      ) : (
-        <BlinksGPT />
-      )}
-    </>
+                {transactionStatus && (
+                  <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
+                    {transactionStatus}
+                  </p>
+                )}
+
+                {errorMessage && (
+                  <p className="mt-2 text-red-500">
+                    {errorMessage}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <BlinksGPT />
+            )}
+          </>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }
