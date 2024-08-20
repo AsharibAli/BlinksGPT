@@ -64,25 +64,25 @@ export const POST = async (req: Request) => {
     const requestUrl = new URL(req.url);
     const { amount, toPubkey } = validatedQueryParams(requestUrl);
 
-    const body: { userId: string } & ActionPostRequest = await req.json();
+    const body: { publicKey: string } & ActionPostRequest = await req.json();
 
-    const { userId } = body;
-    if (!userId) {
-      return new Response('Missing "userId" in the request body', {
+    const { publicKey } = body;
+    if (!publicKey) {
+      return new Response('Missing "publicKey" in the request body', {
         status: 400,
         headers,
       });
     }
 
-    // Here we assume `userId` is sufficient to identify the user and authorize the transaction.
-    const account = new PublicKey(BLINKS_SOL_ADDRESS); // Use a default account for transactions, as we're no longer using the public key from the request.
+    // Use the provided public key to create the transaction
+    const userPublicKey = new PublicKey(publicKey);
 
     const connection = new Connection(
       process.env.NEXT_PUBLIC_SOLANA_RPC_URL! || clusterApiUrl("testnet")
     );
 
     const transferSolInstruction = SystemProgram.transfer({
-      fromPubkey: account,
+      fromPubkey: userPublicKey,
       toPubkey: toPubkey,
       lamports: amount * LAMPORTS_PER_SOL,
     });
@@ -91,7 +91,7 @@ export const POST = async (req: Request) => {
       await connection.getLatestBlockhash();
 
     const transaction = new Transaction({
-      feePayer: account,
+      feePayer: userPublicKey,
       blockhash,
       lastValidBlockHeight,
     }).add(transferSolInstruction);
@@ -103,10 +103,10 @@ export const POST = async (req: Request) => {
       })
       .toString("base64");
 
-    // Generate an HMAC token based on the `userId`
+    // Generate an HMAC token based on the `publicKey`
     const secretKey = process.env.SECRET_KEY || ""; // Secret key used for HMAC
     const token = createHmac("sha256", secretKey)
-      .update(userId)
+      .update(publicKey)
       .digest("hex"); // Generate HMAC token
 
     const payload: ExtendedActionPostResponse = {

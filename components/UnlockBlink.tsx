@@ -4,8 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
-import { Connection, Transaction } from "@solana/web3.js";
+import { useWallet, ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { Connection, Transaction, clusterApiUrl } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css"; // For wallet styles
 
 export default function UnlockBlinks() {
@@ -13,8 +16,7 @@ export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [connected, setConnected] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null); // Use `id` to identify the user
+  const { publicKey, connected } = useWallet();
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
@@ -27,43 +29,23 @@ export default function UnlockBlinks() {
       const response = await client.ready();
       if (response) {
         setIsReady(true); // Set canvas as ready
-        setUserId(response.untrusted.user?.id || null); // Use `id` instead of `publicKey`
       }
-      client.resize();
     };
 
     startClient();
 
-    // Resize observer to handle changes in the canvas size
-    const resizeObserver = new ResizeObserver(() => client.resize());
-    resizeObserver.observe(document.body);
-
     return () => {
-      resizeObserver.disconnect();
       client.destroy();
     };
   }, []);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("paymentToken");
-    const storedUserId = localStorage.getItem("userId"); // Use `id` instead of `publicKey`
-    if (storedToken && storedUserId === userId) {
+    const storedPublicKey = localStorage.getItem("userPublicKey");
+    if (storedToken && storedPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
-  }, [userId]);
-
-  const handleConnectWallet = async () => {
-    try {
-      if (canvasClientRef.current) {
-        // Trigger the connection via DSCVR's Canvas Wallet Adapter
-        await canvasClientRef.current.ready();
-        setConnected(true);
-      }
-    } catch (error) {
-      setErrorMessage("Failed to connect wallet. Please try again.");
-      console.error("Wallet connection error:", error);
-    }
-  };
+  }, [publicKey]);
 
   const handlePayment = async () => {
     if (!connected) {
@@ -80,7 +62,7 @@ export default function UnlockBlinks() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ account: userId }), // Send `id` instead of `publicKey`
+        body: JSON.stringify({ userId: publicKey?.toBase58() }),
       });
 
       if (response.ok) {
@@ -92,7 +74,7 @@ export default function UnlockBlinks() {
         // Sign the transaction with the user's wallet
         const signedTx = await window.solana.signTransaction(tx);
 
-        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.testnet.solana.com", "confirmed");
+        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl("testnet"), "confirmed");
 
         // Send the signed transaction
         const signature = await connection.sendRawTransaction(signedTx.serialize());
@@ -114,7 +96,7 @@ export default function UnlockBlinks() {
           // Delay granting access by 5 seconds
           setTimeout(() => {
             localStorage.setItem("paymentToken", token); // Store the secure token
-            localStorage.setItem("userId", userId!); // Store the user's `id` for verification
+            localStorage.setItem("userPublicKey", publicKey?.toBase58()!); // Store the user's `publicKey` for verification
             setAccessGranted(true);
           }, 5000);
         }
@@ -134,36 +116,38 @@ export default function UnlockBlinks() {
   }
 
   return (
-    <>
-      {!accessGranted ? (
-        <div className="flex flex-col items-center justify-center h-screen">
-          <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
+    <ConnectionProvider endpoint={clusterApiUrl("testnet")}>
+      <WalletProvider wallets={[new PhantomWalletAdapter()]} autoConnect>
+        <WalletModalProvider>
+          {!accessGranted ? (
+            <div className="flex flex-col items-center justify-center h-screen">
+              <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-          {!connected ? (
-            <Button onClick={handleConnectWallet}>
-              Connect Wallet
-            </Button>
+              {!connected ? (
+                <WalletMultiButton />
+              ) : (
+                <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
+                  Pay 0.1 SOL to Access BlinksGPT
+                </Button>
+              )}
+
+              {transactionStatus && (
+                <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
+                  {transactionStatus}
+                </p>
+              )}
+
+              {errorMessage && (
+                <p className="mt-2 text-red-500">
+                  {errorMessage}
+                </p>
+              )}
+            </div>
           ) : (
-            <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
-              Pay 0.1 SOL to Access BlinksGPT
-            </Button>
+            <BlinksGPT />
           )}
-
-          {transactionStatus && (
-            <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
-              {transactionStatus}
-            </p>
-          )}
-
-          {errorMessage && (
-            <p className="mt-2 text-red-500">
-              {errorMessage}
-            </p>
-          )}
-        </div>
-      ) : (
-        <BlinksGPT />
-      )}
-    </>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }
