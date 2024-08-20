@@ -46,6 +46,7 @@ export default function UnlockBlinks() {
   const handleConnectWallet = async () => {
     if (!canvasClientRef.current) {
       console.error("CanvasClient is not initialized");
+      setErrorMessage("CanvasClient is not initialized. Please try again.");
       return;
     }
 
@@ -54,18 +55,19 @@ export default function UnlockBlinks() {
       if (response && response.untrusted.success) {
         setAddress(response.untrusted.address);
         localStorage.setItem("userAddress", response.untrusted.address);
+        setErrorMessage(null); // Clear any previous error message
       } else {
-        setErrorMessage("Failed to connect wallet");
+        setErrorMessage("Failed to connect wallet. Please try again.");
       }
     } catch (error) {
       console.error("Wallet connection error:", error);
-      setErrorMessage("Failed to connect wallet");
+      setErrorMessage("Failed to connect wallet. Please try again.");
     }
   };
 
   const handlePayment = async () => {
     if (!address) {
-      alert("Please connect your wallet");
+      setErrorMessage("Wallet is not connected. Please connect your wallet first.");
       return;
     }
 
@@ -92,10 +94,11 @@ export default function UnlockBlinks() {
         });
 
         if (results?.untrusted.success) {
-          setTransactionStatus("Transaction successful!");
+          setTransactionStatus("Transaction successful! Please wait...");
           setTimeout(() => {
             localStorage.setItem("paymentToken", token);
             setAccessGranted(true);
+            setTransactionStatus(null);
           }, 5000);
         } else {
           setTransactionStatus("Transaction failed.");
@@ -123,12 +126,15 @@ export default function UnlockBlinks() {
       {!address ? (
         <Button onClick={handleConnectWallet}>Connect Wallet</Button>
       ) : (
-        <Button
-          onClick={handlePayment}
-          disabled={transactionStatus === "Transaction in progress..."}
-        >
-          Pay 0.1 SOL to Access BlinksGPT
-        </Button>
+        <>
+          <p className="text-sm mb-2 text-gray-500">Connected Wallet: {address}</p>
+          <Button
+            onClick={handlePayment}
+            disabled={transactionStatus === "Transaction in progress..."}
+          >
+            Pay 0.1 SOL to Access BlinksGPT
+          </Button>
+        </>
       )}
 
       {transactionStatus && (
