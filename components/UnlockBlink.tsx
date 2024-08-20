@@ -15,13 +15,12 @@ export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected, wallet } = useWallet(); // Access wallet information
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
-    // Initialize CanvasClient and register the canvas wallet
     const client = new CanvasClient();
-    registerCanvasWallet(client); // Register only the DSCVR Canvas Wallet
+    registerCanvasWallet(client); // Register DSCVR Canvas Wallet
     canvasClientRef.current = client;
 
     const startClient = async () => {
@@ -41,14 +40,17 @@ export default function UnlockBlinks() {
   useEffect(() => {
     const storedToken = localStorage.getItem("paymentToken");
     const storedPublicKey = localStorage.getItem("userPublicKey");
+
     if (storedToken && storedPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
   }, [publicKey]);
 
+  const isCanvasWalletConnected = connected && wallet?.adapter?.name === "DSCVR Canvas"; // Ensure only DSCVR wallet triggers the button
+
   const handlePayment = async () => {
-    if (!connected) {
-      alert("Please connect your wallet");
+    if (!isCanvasWalletConnected) {
+      alert("Please connect your DSCVR wallet");
       return;
     }
 
@@ -66,25 +68,14 @@ export default function UnlockBlinks() {
 
       if (response.ok) {
         const { transaction, token } = await response.json();
-
-        // Deserialize the transaction from the API response
         const tx = Transaction.from(Buffer.from(transaction, "base64"));
-
-        // Sign the transaction with the user's wallet
         const signedTx = await window.solana.signTransaction(tx);
 
         const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl("testnet"), "confirmed");
-
-        // Send the signed transaction
         const signature = await connection.sendRawTransaction(signedTx.serialize());
 
         const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-        const confirmationStrategy = {
-          signature,
-          blockhash,
-          lastValidBlockHeight,
-        };
-
+        const confirmationStrategy = { signature, blockhash, lastValidBlockHeight };
         const confirmation = await connection.confirmTransaction(confirmationStrategy, "confirmed");
 
         if (confirmation.value.err) {
@@ -92,10 +83,9 @@ export default function UnlockBlinks() {
           setErrorMessage("Transaction failed. Please try again.");
         } else {
           setTransactionStatus("Transaction successful!");
-          // Delay granting access by 5 seconds
           setTimeout(() => {
-            localStorage.setItem("paymentToken", token); // Store the secure token
-            localStorage.setItem("userPublicKey", publicKey?.toBase58()!); // Store the user's `publicKey` for verification
+            localStorage.setItem("paymentToken", token);
+            localStorage.setItem("userPublicKey", publicKey?.toBase58()!);
             setAccessGranted(true);
           }, 5000);
         }
@@ -111,21 +101,21 @@ export default function UnlockBlinks() {
   };
 
   if (!isReady) {
-    return <p className="text-center">Loading...</p>; // Loading state while the canvas client initializes
+    return <p className="text-center">Loading...</p>;
   }
 
   return (
-    <WalletProvider wallets={[]} autoConnect> {/* No additional wallets are registered here */}
+    <WalletProvider wallets={[]} autoConnect>
       <WalletModalProvider>
         {!accessGranted ? (
           <div className="flex flex-col items-center justify-center h-screen">
             <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
             <WalletMultiButton /> {/* Always show the connect wallet button */}
-            
-            <Button 
-              onClick={handlePayment} 
-              disabled={!connected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button when connected */}
+
+            <Button
+              onClick={handlePayment}
+              disabled={!isCanvasWalletConnected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button only for DSCVR Canvas Wallet */}
               Pay 0.1 SOL to Access BlinksGPT
             </Button>
 
