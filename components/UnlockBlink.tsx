@@ -138,9 +138,9 @@ export default function UnlockBlinks() {
 
   return (
    <div className="flex flex-col items-center justify-center h-screen">
-    <h1 className="text-2xl mb-4">💗 Welcome {<strong>{username}</strong>  ? username : "User"} to the BlinksGPT 🤖</h1>
+    <h1 className="text-2xl mb-4">💗 Welcome {username ? username : "User"} to the BlinksGPT 🤖</h1>
     {address ? (
-      <p className="text-sm mb-4 text-gray-500"><strong>Connected Wallet Address:</strong>{address}</p>
+      <h3 className="text-sm mb-4 text-gray-500"><strong>Connected Wallet Address:</strong>{" "}{address}</h3>
     ) : (
       <p className="text-sm mb-4 text-red-500">Please connect your wallet to proceed.</p>
     )}
