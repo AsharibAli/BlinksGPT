@@ -4,30 +4,30 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Connection, Transaction, clusterApiUrl } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
+import "@solana/wallet-adapter-react-ui/styles.css"; // For wallet styles
 
 export default function UnlockBlinks() {
   const [isReady, setIsReady] = useState(false);
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [walletConnected, setWalletConnected] = useState(false); // Track if the SDK wallet is connected
   const { publicKey, connected } = useWallet();
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
     // Initialize CanvasClient and register the canvas wallet
     const client = new CanvasClient();
-    registerCanvasWallet(client); // Register the DSCVR Canvas Wallet
+    registerCanvasWallet(client); // Register only the DSCVR Canvas Wallet
     canvasClientRef.current = client;
 
     const startClient = async () => {
       const response = await client.ready();
       if (response) {
         setIsReady(true); // Set canvas as ready
-        setWalletConnected(!!publicKey); // Check if the wallet is connected through the SDK
       }
     };
 
@@ -36,19 +36,18 @@ export default function UnlockBlinks() {
     return () => {
       client.destroy();
     };
-  }, [publicKey]);
+  }, []);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("paymentToken");
     const storedPublicKey = localStorage.getItem("userPublicKey");
-
     if (storedToken && storedPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
   }, [publicKey]);
 
   const handlePayment = async () => {
-    if (!walletConnected) {
+    if (!connected) {
       alert("Please connect your wallet");
       return;
     }
@@ -116,36 +115,36 @@ export default function UnlockBlinks() {
   }
 
   return (
-    <>
-      {!accessGranted ? (
-        <div className="flex flex-col items-center justify-center h-screen">
-          <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
+    <WalletProvider wallets={[]} autoConnect> {/* No additional wallets are registered here */}
+      <WalletModalProvider>
+        {!accessGranted ? (
+          <div className="flex flex-col items-center justify-center h-screen">
+            <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-          {!walletConnected ? (
-            <Button onClick={() => canvasClientRef.current?.connectWallet("testnet")}>
-              Connect Wallet
-            </Button>
-          ) : (
-            <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
+            <WalletMultiButton /> {/* Always show the connect wallet button */}
+            
+            <Button 
+              onClick={handlePayment} 
+              disabled={!connected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button when connected */}
               Pay 0.1 SOL to Access BlinksGPT
             </Button>
-          )}
 
-          {transactionStatus && (
-            <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
-              {transactionStatus}
-            </p>
-          )}
+            {transactionStatus && (
+              <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
+                {transactionStatus}
+              </p>
+            )}
 
-          {errorMessage && (
-            <p className="mt-2 text-red-500">
-              {errorMessage}
-            </p>
-          )}
-        </div>
-      ) : (
-        <BlinksGPT />
-      )}
-    </>
+            {errorMessage && (
+              <p className="mt-2 text-red-500">
+                {errorMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <BlinksGPT />
+        )}
+      </WalletModalProvider>
+    </WalletProvider>
   );
 }
