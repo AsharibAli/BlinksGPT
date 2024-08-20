@@ -137,10 +137,13 @@ export default function UnlockBlinks() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-2xl mb-4">Welcome {username ? username : "User"}!</h1>
-      <p className="text-sm mb-4 text-gray-500">Connected Wallet Address: {address ? address : "Not connected"}</p>
-
+   <div className="flex flex-col items-center justify-center h-screen">
+    <h1 className="text-2xl mb-4">💗 Welcome {username ? username : "User"} to the BlinksGPT 🤖</h1>
+    {address ? (
+      <strong className="text-sm mb-4 text-gray-500">Connected Wallet Address: {address}</strong>
+    ) : (
+      <p className="text-sm mb-4 text-red-500">Please connect your wallet to proceed.</p>
+    )}
       {!address ? (
         <Button onClick={handleConnectWallet}>Connect Wallet</Button>
       ) : (
@@ -149,7 +152,7 @@ export default function UnlockBlinks() {
             onClick={handlePayment}
             disabled={transactionStatus === "Transaction in progress..."}
           >
-            Pay 0.1 SOL to Access BlinksGPT
+            Pay 0.1 Devnet SOL to Access BlinksGPT
           </Button>
         </>
       )}
