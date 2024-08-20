@@ -4,18 +4,15 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
-import { useWallet, WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Connection, Transaction, clusterApiUrl } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
-import "@solana/wallet-adapter-react-ui/styles.css"; // For wallet styles
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function UnlockBlinks() {
   const [isReady, setIsReady] = useState(false);
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { publicKey, connected } = useWallet();
+  const [address, setAddress] = useState<string | null>(null);
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
@@ -40,14 +37,34 @@ export default function UnlockBlinks() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem("paymentToken");
-    const storedPublicKey = localStorage.getItem("userPublicKey");
-    if (storedToken && storedPublicKey === publicKey?.toBase58()) {
+    const storedAddress = localStorage.getItem("userAddress");
+    if (storedToken && storedAddress === address) {
       setAccessGranted(true);
     }
-  }, [publicKey]);
+  }, [address]);
+
+  const handleConnectWallet = async () => {
+    if (!canvasClientRef.current) {
+      console.error("CanvasClient is not initialized");
+      return;
+    }
+
+    try {
+      const response = await canvasClientRef.current.connectWallet("solana:101");
+      if (response && response.untrusted.success) {
+        setAddress(response.untrusted.address);
+        localStorage.setItem("userAddress", response.untrusted.address);
+      } else {
+        setErrorMessage("Failed to connect wallet");
+      }
+    } catch (error) {
+      console.error("Wallet connection error:", error);
+      setErrorMessage("Failed to connect wallet");
+    }
+  };
 
   const handlePayment = async () => {
-    if (!connected) {
+    if (!address) {
       alert("Please connect your wallet");
       return;
     }
@@ -61,43 +78,28 @@ export default function UnlockBlinks() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ publicKey: publicKey?.toBase58() }),
+        body: JSON.stringify({ publicKey: address }),
       });
 
       if (response.ok) {
         const { transaction, token } = await response.json();
 
-        // Deserialize the transaction from the API response
-        const tx = Transaction.from(Buffer.from(transaction, "base64"));
+        // Sign and send the transaction with the user's wallet
+        const results = await canvasClientRef.current?.signAndSendTransaction({
+          unsignedTx: transaction,
+          awaitCommitment: "confirmed",
+          chainId: "solana:101",
+        });
 
-        // Sign the transaction with the user's wallet
-        const signedTx = await window.solana.signTransaction(tx);
-
-        const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl("testnet"), "confirmed");
-
-        // Send the signed transaction
-        const signature = await connection.sendRawTransaction(signedTx.serialize());
-
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-        const confirmationStrategy = {
-          signature,
-          blockhash,
-          lastValidBlockHeight,
-        };
-
-        const confirmation = await connection.confirmTransaction(confirmationStrategy, "confirmed");
-
-        if (confirmation.value.err) {
-          setTransactionStatus("Transaction failed.");
-          setErrorMessage("Transaction failed. Please try again.");
-        } else {
+        if (results?.untrusted.success) {
           setTransactionStatus("Transaction successful!");
-          // Delay granting access by 5 seconds
           setTimeout(() => {
-            localStorage.setItem("paymentToken", token); // Store the secure token
-            localStorage.setItem("userPublicKey", publicKey?.toBase58()!); // Store the user's `publicKey` for verification
+            localStorage.setItem("paymentToken", token);
             setAccessGranted(true);
           }, 5000);
+        } else {
+          setTransactionStatus("Transaction failed.");
+          setErrorMessage("Transaction failed. Please try again.");
         }
       } else {
         setTransactionStatus("Transaction failed.");
@@ -111,40 +113,37 @@ export default function UnlockBlinks() {
   };
 
   if (!isReady) {
-    return <p className="text-center">Loading...</p>; // Loading state while the canvas client initializes
+    return <p className="text-center">Loading...</p>;
   }
 
   return (
-    <WalletProvider wallets={[]} autoConnect> {/* No additional wallets are registered here */}
-      <WalletModalProvider>
-        {!accessGranted ? (
-          <div className="flex flex-col items-center justify-center h-screen">
-            <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-            <WalletMultiButton /> {/* Always show the connect wallet button */}
-            
-            <Button 
-              onClick={handlePayment} 
-              disabled={!connected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button when connected */}
-              Pay 0.1 SOL to Access BlinksGPT
-            </Button>
+      {!address ? (
+        <Button onClick={handleConnectWallet}>Connect Wallet</Button>
+      ) : (
+        <Button
+          onClick={handlePayment}
+          disabled={transactionStatus === "Transaction in progress..."}
+        >
+          Pay 0.1 SOL to Access BlinksGPT
+        </Button>
+      )}
 
-            {transactionStatus && (
-              <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
-                {transactionStatus}
-              </p>
-            )}
+      {transactionStatus && (
+        <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
+          {transactionStatus}
+        </p>
+      )}
 
-            {errorMessage && (
-              <p className="mt-2 text-red-500">
-                {errorMessage}
-              </p>
-            )}
-          </div>
-        ) : (
-          <BlinksGPT />
-        )}
-      </WalletModalProvider>
-    </WalletProvider>
+      {errorMessage && (
+        <p className="mt-2 text-red-500">
+          {errorMessage}
+        </p>
+      )}
+
+      {accessGranted && <BlinksGPT />}
+    </div>
   );
 }

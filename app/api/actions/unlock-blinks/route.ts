@@ -1,6 +1,5 @@
 import {
   ActionPostResponse,
-  createPostResponse,
   ActionGetResponse,
   ActionPostRequest,
   createActionHeaders,
