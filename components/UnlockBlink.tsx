@@ -50,7 +50,7 @@ export default function UnlockBlinks() {
     }
 
     try {
-      const response = await canvasClientRef.current.connectWallet("solana:101");
+      const response = await canvasClientRef.current.connectWallet("solana:testnet");
       if (response && response.untrusted.success) {
         setAddress(response.untrusted.address);
         localStorage.setItem("userAddress", response.untrusted.address);
@@ -88,7 +88,7 @@ export default function UnlockBlinks() {
         const results = await canvasClientRef.current?.signAndSendTransaction({
           unsignedTx: transaction,
           awaitCommitment: "confirmed",
-          chainId: "solana:101",
+          chainId: "solana:testnet",
         });
 
         if (results?.untrusted.success) {
