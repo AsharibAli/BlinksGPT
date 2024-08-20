@@ -122,7 +122,7 @@ export default function UnlockBlinks() {
           <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
           {!walletConnected ? (
-            <Button onClick={() => canvasClientRef.current?.connectWallet("solana")}>
+            <Button onClick={() => canvasClientRef.current?.connectWallet("testnet")}>
               Connect Wallet
             </Button>
           ) : (
