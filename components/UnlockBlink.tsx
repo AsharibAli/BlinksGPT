@@ -4,11 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
-import { useWallet, ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { useWallet, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Connection, Transaction, clusterApiUrl } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css"; // For wallet styles
 
 export default function UnlockBlinks() {
@@ -22,7 +21,7 @@ export default function UnlockBlinks() {
   useEffect(() => {
     // Initialize CanvasClient and register the canvas wallet
     const client = new CanvasClient();
-    registerCanvasWallet(client);
+    registerCanvasWallet(client); // Register only the DSCVR Canvas Wallet
     canvasClientRef.current = client;
 
     const startClient = async () => {
@@ -62,7 +61,7 @@ export default function UnlockBlinks() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: publicKey?.toBase58() }),
+        body: JSON.stringify({ publicKey: publicKey?.toBase58() }),
       });
 
       if (response.ok) {
@@ -116,38 +115,36 @@ export default function UnlockBlinks() {
   }
 
   return (
-    <ConnectionProvider endpoint={clusterApiUrl("testnet")}>
-      <WalletProvider wallets={[new PhantomWalletAdapter()]} autoConnect>
-        <WalletModalProvider>
-          {!accessGranted ? (
-            <div className="flex flex-col items-center justify-center h-screen">
-              <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
+    <WalletProvider wallets={[]} autoConnect> {/* No additional wallets are registered here */}
+      <WalletModalProvider>
+        {!accessGranted ? (
+          <div className="flex flex-col items-center justify-center h-screen">
+            <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-              {!connected ? (
-                <WalletMultiButton />
-              ) : (
-                <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
-                  Pay 0.1 SOL to Access BlinksGPT
-                </Button>
-              )}
+            <WalletMultiButton /> {/* Always show the connect wallet button */}
+            
+            <Button 
+              onClick={handlePayment} 
+              disabled={!connected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button when connected */}
+              Pay 0.1 SOL to Access BlinksGPT
+            </Button>
 
-              {transactionStatus && (
-                <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
-                  {transactionStatus}
-                </p>
-              )}
+            {transactionStatus && (
+              <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
+                {transactionStatus}
+              </p>
+            )}
 
-              {errorMessage && (
-                <p className="mt-2 text-red-500">
-                  {errorMessage}
-                </p>
-              )}
-            </div>
-          ) : (
-            <BlinksGPT />
-          )}
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+            {errorMessage && (
+              <p className="mt-2 text-red-500">
+                {errorMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <BlinksGPT />
+        )}
+      </WalletModalProvider>
+    </WalletProvider>
   );
 }
