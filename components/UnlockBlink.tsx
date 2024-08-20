@@ -70,10 +70,10 @@ export default function UnlockBlinks() {
       setErrorMessage("Wallet is not connected. Please connect your wallet first.");
       return;
     }
-
+  
     setTransactionStatus("Transaction in progress...");
     setErrorMessage(null);
-
+  
     try {
       const response = await fetch(`/api/actions/unlock-blinks`, {
         method: "POST",
@@ -82,17 +82,20 @@ export default function UnlockBlinks() {
         },
         body: JSON.stringify({ publicKey: address }),
       });
-
+  
       if (response.ok) {
         const { transaction, token } = await response.json();
-
+  
+        // Decode the Base64 transaction string
+        const decodedTransaction = Buffer.from(transaction, 'base64').toString('base64');
+  
         // Sign and send the transaction with the user's wallet
         const results = await canvasClientRef.current?.signAndSendTransaction({
-          unsignedTx: transaction,
+          unsignedTx: decodedTransaction,
           awaitCommitment: "confirmed",
           chainId: "solana:103",
         });
-
+  
         if (results?.untrusted.success) {
           setTransactionStatus("Transaction successful! Please wait...");
           setTimeout(() => {
@@ -114,6 +117,7 @@ export default function UnlockBlinks() {
       console.error("Payment error:", error);
     }
   };
+  
 
   if (!isReady) {
     return <p className="text-center">Loading...</p>;
