@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
 import BlinksGPT from "@/components/BlinksGPT";
-import * as bs58 from "bs58";  // Import Base58 for encoding/decoding
+import * as bs58 from "bs58";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function UnlockBlinks() {
@@ -19,7 +19,7 @@ export default function UnlockBlinks() {
   useEffect(() => {
     // Initialize CanvasClient and register the canvas wallet
     const client = new CanvasClient();
-    registerCanvasWallet(client); // Register only the DSCVR Canvas Wallet
+    registerCanvasWallet(client);
     canvasClientRef.current = client;
 
     const startClient = async () => {
@@ -126,6 +126,11 @@ export default function UnlockBlinks() {
     return <p className="text-center">Loading...</p>;
   }
 
+  // Render only the BlinksGPT component if access is granted
+  if (accessGranted) {
+    return <BlinksGPT />;
+  }
+
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
@@ -155,8 +160,6 @@ export default function UnlockBlinks() {
           {errorMessage}
         </p>
       )}
-
-      {accessGranted && <BlinksGPT />}
     </div>
   );
 }
