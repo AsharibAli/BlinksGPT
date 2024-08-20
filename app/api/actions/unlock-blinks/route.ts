@@ -77,7 +77,7 @@ export const POST = async (req: Request) => {
     const userPublicKey = new PublicKey(publicKey);
 
     const connection = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL! || clusterApiUrl("testnet")
+      process.env.NEXT_PUBLIC_SOLANA_RPC_URL! || clusterApiUrl("devnet")
     );
 
     const transferSolInstruction = SystemProgram.transfer({
