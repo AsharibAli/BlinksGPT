@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
@@ -16,14 +16,12 @@ export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { publicKey, connected } = useWallet();
-  const canvasClientRef = useRef<CanvasClient | null>(null);
+  const { publicKey, connected, connecting } = useWallet(); // Added `connecting` to track the connecting state
 
   useEffect(() => {
     // Initialize CanvasClient and register the canvas wallet
     const client = new CanvasClient();
     registerCanvasWallet(client);
-    canvasClientRef.current = client;
 
     const startClient = async () => {
       const response = await client.ready();
@@ -62,7 +60,7 @@ export default function UnlockBlinks() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: publicKey?.toBase58() }),
+        body: JSON.stringify({ publicKey: publicKey?.toBase58() }),
       });
 
       if (response.ok) {
@@ -123,10 +121,10 @@ export default function UnlockBlinks() {
             <div className="flex flex-col items-center justify-center h-screen">
               <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-              {!connected ? (
+              {!connected && !connecting ? (
                 <WalletMultiButton />
               ) : (
-                <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
+                <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..." || connecting}>
                   Pay 0.1 SOL to Access BlinksGPT
                 </Button>
               )}
