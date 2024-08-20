@@ -16,6 +16,7 @@ export default function UnlockBlinks() {
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { publicKey, connected, wallet } = useWallet(); // Access wallet information
+  const [isCanvasWallet, setIsCanvasWallet] = useState(false); // Track if connected wallet is DSCVR Canvas
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
@@ -44,12 +45,17 @@ export default function UnlockBlinks() {
     if (storedToken && storedPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
-  }, [publicKey]);
 
-  const isCanvasWalletConnected = connected && wallet?.adapter?.name === "DSCVR Canvas"; // Ensure only DSCVR wallet triggers the button
+    // Check if the connected wallet is the DSCVR Canvas Wallet
+    if (connected && wallet?.adapter?.name === "DSCVR Canvas") {
+      setIsCanvasWallet(true);
+    } else {
+      setIsCanvasWallet(false);
+    }
+  }, [publicKey, connected, wallet]);
 
   const handlePayment = async () => {
-    if (!isCanvasWalletConnected) {
+    if (!isCanvasWallet) {
       alert("Please connect your DSCVR wallet");
       return;
     }
@@ -115,7 +121,7 @@ export default function UnlockBlinks() {
 
             <Button
               onClick={handlePayment}
-              disabled={!isCanvasWalletConnected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button only for DSCVR Canvas Wallet */}
+              disabled={!isCanvasWallet || transactionStatus === "Transaction in progress..."}> {/* Enable payment button only for DSCVR Canvas Wallet */}
               Pay 0.1 SOL to Access BlinksGPT
             </Button>
 
