@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
 import BlinksGPT from "@/components/BlinksGPT";
+import * as bs58 from "bs58";  // Import Base58 for encoding/decoding
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 export default function UnlockBlinks() {
@@ -70,10 +71,10 @@ export default function UnlockBlinks() {
       setErrorMessage("Wallet is not connected. Please connect your wallet first.");
       return;
     }
-  
+
     setTransactionStatus("Transaction in progress...");
     setErrorMessage(null);
-  
+
     try {
       const response = await fetch(`/api/actions/unlock-blinks`, {
         method: "POST",
@@ -82,20 +83,23 @@ export default function UnlockBlinks() {
         },
         body: JSON.stringify({ publicKey: address }),
       });
-  
+
       if (response.ok) {
         const { transaction, token } = await response.json();
-  
-        // Decode the Base64 transaction string
-        const decodedTransaction = Buffer.from(transaction, 'base64').toString('base64');
-  
+
+        // Decode the transaction from Base58
+        const decodedTx = bs58.decode(transaction);
+
+        // Encode the Buffer back to a Base58 string
+        const unsignedTx = bs58.encode(decodedTx);
+
         // Sign and send the transaction with the user's wallet
         const results = await canvasClientRef.current?.signAndSendTransaction({
-          unsignedTx: decodedTransaction,
+          unsignedTx: unsignedTx,
           awaitCommitment: "confirmed",
           chainId: "solana:103",
         });
-  
+
         if (results?.untrusted.success) {
           setTransactionStatus("Transaction successful! Please wait...");
           setTimeout(() => {
@@ -117,7 +121,6 @@ export default function UnlockBlinks() {
       console.error("Payment error:", error);
     }
   };
-  
 
   if (!isReady) {
     return <p className="text-center">Loading...</p>;

@@ -14,6 +14,7 @@ import {
 } from "@solana/web3.js";
 import { createHmac } from "crypto";
 import { BLINKS_SOL_ADDRESS, BLINKS_SOL_AMOUNT } from "./const";
+import * as bs58 from "bs58";
 
 interface ExtendedActionPostResponse extends ActionPostResponse {
   token: string;
@@ -96,11 +97,10 @@ export const POST = async (req: Request) => {
     }).add(transferSolInstruction);
 
     // Serialize the transaction to send back to the client
-    const serializedTransaction = transaction
-      .serialize({
-        requireAllSignatures: false,
-      })
-      .toString("base64");
+    const serializedTransaction = bs58.encode(transaction.serialize({
+      requireAllSignatures: false,
+    }));  // Base58 encoding
+    
 
     // Generate an HMAC token based on the `publicKey`
     const secretKey = process.env.SECRET_KEY || ""; // Secret key used for HMAC
