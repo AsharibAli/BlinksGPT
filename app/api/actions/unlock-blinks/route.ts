@@ -20,7 +20,6 @@ interface ExtendedActionPostResponse extends ActionPostResponse {
   token: string;
 }
 
-
 const headers = createActionHeaders();
 
 export const GET = async (req: Request) => {
@@ -65,17 +64,18 @@ export const POST = async (req: Request) => {
     const requestUrl = new URL(req.url);
     const { amount, toPubkey } = validatedQueryParams(requestUrl);
 
-    const body: ActionPostRequest = await req.json();
+    const body: { userId: string } & ActionPostRequest = await req.json();
 
-    let account: PublicKey;
-    try {
-      account = new PublicKey(body.account);
-    } catch (err) {
-      return new Response('Invalid "account" provided', {
+    const { userId } = body;
+    if (!userId) {
+      return new Response('Missing "userId" in the request body', {
         status: 400,
         headers,
       });
     }
+
+    // Here we assume `userId` is sufficient to identify the user and authorize the transaction.
+    const account = new PublicKey(BLINKS_SOL_ADDRESS); // Use a default account for transactions, as we're no longer using the public key from the request.
 
     const connection = new Connection(
       process.env.NEXT_PUBLIC_SOLANA_RPC_URL! || clusterApiUrl("testnet")
@@ -103,10 +103,10 @@ export const POST = async (req: Request) => {
       })
       .toString("base64");
 
-    // Generate an HMAC token based on the user's public key
+    // Generate an HMAC token based on the `userId`
     const secretKey = process.env.SECRET_KEY || ""; // Secret key used for HMAC
     const token = createHmac("sha256", secretKey)
-      .update(account.toBase58())
+      .update(userId)
       .digest("hex"); // Generate HMAC token
 
     const payload: ExtendedActionPostResponse = {
@@ -156,7 +156,6 @@ function validatedQueryParams(requestUrl: URL) {
   };
 }
 
-export const OPTIONS = async (req: Request) => {
+export const OPTIONS = async () => {
   return new Response(null, { headers });
 };
-
