@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CanvasClient } from "@dscvr-one/canvas-client-sdk";
 import { registerCanvasWallet } from "@dscvr-one/canvas-wallet-adapter";
 import { useWallet, WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { Connection, Transaction, clusterApiUrl } from "@solana/web3.js";
 import BlinksGPT from "@/components/BlinksGPT";
 import "@solana/wallet-adapter-react-ui/styles.css"; // For wallet styles
@@ -15,7 +15,7 @@ export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected, connect, wallet } = useWallet(); // Access wallet information
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
@@ -48,7 +48,17 @@ export default function UnlockBlinks() {
 
   const handlePayment = async () => {
     if (!connected) {
-      alert("Please connect your DSCVR wallet");
+      try {
+        await connect(); // Trigger the wallet connection process
+      } catch (error) {
+        alert("Failed to connect wallet. Please try again.");
+        console.error("Wallet connection error:", error);
+        return;
+      }
+    }
+
+    if (!publicKey) {
+      alert("Wallet connection failed. Please try again.");
       return;
     }
 
@@ -61,7 +71,7 @@ export default function UnlockBlinks() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ publicKey: publicKey?.toBase58() }),
+        body: JSON.stringify({ publicKey: publicKey.toBase58() }),
       });
 
       if (response.ok) {
@@ -83,7 +93,7 @@ export default function UnlockBlinks() {
           setTransactionStatus("Transaction successful!");
           setTimeout(() => {
             localStorage.setItem("paymentToken", token);
-            localStorage.setItem("userPublicKey", publicKey?.toBase58()!);
+            localStorage.setItem("userPublicKey", publicKey.toBase58());
             setAccessGranted(true);
           }, 5000);
         }
@@ -103,17 +113,15 @@ export default function UnlockBlinks() {
   }
 
   return (
-    <WalletProvider wallets={[]} autoConnect> {/* Only register DSCVR Canvas Wallet */}
+    <WalletProvider wallets={[]} autoConnect>
       <WalletModalProvider>
         {!accessGranted ? (
           <div className="flex flex-col items-center justify-center h-screen">
             <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-            <WalletMultiButton /> {/* Always show the connect wallet button */}
-
             <Button
               onClick={handlePayment}
-              disabled={!connected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button only for DSCVR Canvas Wallet */}
+              disabled={transactionStatus === "Transaction in progress..."}>
               Pay 0.1 SOL to Access BlinksGPT
             </Button>
 
