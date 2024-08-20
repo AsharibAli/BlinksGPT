@@ -15,8 +15,7 @@ export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { publicKey, connected, wallet } = useWallet(); // Access wallet information
-  const [isCanvasWallet, setIsCanvasWallet] = useState(false); // Track if connected wallet is DSCVR Canvas
+  const { publicKey, connected } = useWallet();
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
@@ -45,17 +44,10 @@ export default function UnlockBlinks() {
     if (storedToken && storedPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
-
-    // Check if the connected wallet is the DSCVR Canvas Wallet
-    if (connected && wallet?.adapter?.name === "DSCVR Canvas") {
-      setIsCanvasWallet(true);
-    } else {
-      setIsCanvasWallet(false);
-    }
-  }, [publicKey, connected, wallet]);
+  }, [publicKey]);
 
   const handlePayment = async () => {
-    if (!isCanvasWallet) {
+    if (!connected) {
       alert("Please connect your DSCVR wallet");
       return;
     }
@@ -111,7 +103,7 @@ export default function UnlockBlinks() {
   }
 
   return (
-    <WalletProvider wallets={[]} autoConnect>
+    <WalletProvider wallets={[]} autoConnect> {/* Only register DSCVR Canvas Wallet */}
       <WalletModalProvider>
         {!accessGranted ? (
           <div className="flex flex-col items-center justify-center h-screen">
@@ -121,7 +113,7 @@ export default function UnlockBlinks() {
 
             <Button
               onClick={handlePayment}
-              disabled={!isCanvasWallet || transactionStatus === "Transaction in progress..."}> {/* Enable payment button only for DSCVR Canvas Wallet */}
+              disabled={!connected || transactionStatus === "Transaction in progress..."}> {/* Enable payment button only for DSCVR Canvas Wallet */}
               Pay 0.1 SOL to Access BlinksGPT
             </Button>
 
