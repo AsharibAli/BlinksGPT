@@ -14,6 +14,7 @@ export default function UnlockBlinks() {
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
@@ -25,7 +26,11 @@ export default function UnlockBlinks() {
     const startClient = async () => {
       const response = await client.ready();
       if (response) {
-        setIsReady(true); // Set canvas as ready
+        setIsReady(true); 
+
+        const user : any = response.untrusted.user;
+        setUsername(user.username || "User");
+       
       }
     };
 
@@ -133,13 +138,13 @@ export default function UnlockBlinks() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
+      <h1 className="text-2xl mb-4">Welcome {username ? username : "User"}!</h1>
+      <p className="text-sm mb-4 text-gray-500">Connected Wallet Address: {address ? address : "Not connected"}</p>
 
       {!address ? (
         <Button onClick={handleConnectWallet}>Connect Wallet</Button>
       ) : (
         <>
-          <p className="text-sm mb-2 text-gray-500">Connected Wallet: {address}</p>
           <Button
             onClick={handlePayment}
             disabled={transactionStatus === "Transaction in progress..."}
