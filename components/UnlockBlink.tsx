@@ -15,6 +15,7 @@ export default function UnlockBlinks() {
   const [accessGranted, setAccessGranted] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [anyWalletConnected, setAnyWalletConnected] = useState(false); // New state to track any wallet connection
   const { publicKey, connected } = useWallet();
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
@@ -41,13 +42,21 @@ export default function UnlockBlinks() {
   useEffect(() => {
     const storedToken = localStorage.getItem("paymentToken");
     const storedPublicKey = localStorage.getItem("userPublicKey");
+
     if (storedToken && storedPublicKey === publicKey?.toBase58()) {
       setAccessGranted(true);
     }
-  }, [publicKey]);
+
+    // Check if any wallet is connected either via the SDK or directly
+    if (connected || publicKey) {
+      setAnyWalletConnected(true);
+    } else {
+      setAnyWalletConnected(false);
+    }
+  }, [publicKey, connected]);
 
   const handlePayment = async () => {
-    if (!connected) {
+    if (!connected && !anyWalletConnected) {
       alert("Please connect your wallet");
       return;
     }
@@ -121,7 +130,7 @@ export default function UnlockBlinks() {
           <div className="flex flex-col items-center justify-center h-screen">
             <h1 className="text-2xl mb-4">Unlock BlinksGPT</h1>
 
-            {!connected ? (
+            {!anyWalletConnected ? (
               <WalletMultiButton /> 
             ) : (
               <Button onClick={handlePayment} disabled={transactionStatus === "Transaction in progress..."}>
