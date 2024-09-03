@@ -59,6 +59,7 @@ This is the first subscription-based service on the DSCVR Canvas. To access the 
 
 - [Flowise Github Repositry](https://github.com/AsharibAli/flowise) (Deployed on Render & Connected to Chatbot UI via APIs programmatically).
 - [FlowiseChatEmbed Github Repositry](https://github.com/AsharibAli/FlowiseChatEmbed) (UI/UX of Chatbot, Connected via CDN)
+- [BlinksGPT API Action](https://blinks-gpt-on-solana-new.vercel.app/api/actions/unlock-blinks)
 
 <p style="text-align: center" align="center">
 <a href="https://ibb.co/NSVQ8Vw"><img src="https://i.ibb.co/74Y8wY7/diagram.png" alt="diagram" border="0"></a>
