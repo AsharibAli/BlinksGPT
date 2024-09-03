@@ -1,4 +1,4 @@
-# BlinksGPT | The first AI assistant for Solana Blinks Development via the subscription-based service model on DSCVR as a Canvas App 🤖
+# Introducing BlinksGPT | The first AI assistant for Solana Blinks Development via the subscription-based service model on DSCVR as a Canvas App 🤖
 
 **➡️ This project is a submission to the DSCVR Buildathon - Canvas Embedded Apps Fest 👨‍💻**
 

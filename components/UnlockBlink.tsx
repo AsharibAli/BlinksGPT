@@ -11,14 +11,15 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 export default function UnlockBlinks() {
   const [isReady, setIsReady] = useState(false);
   const [accessGranted, setAccessGranted] = useState(false);
-  const [transactionStatus, setTransactionStatus] = useState<string | null>(null);
+  const [transactionStatus, setTransactionStatus] = useState<string | null>(
+    null
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const canvasClientRef = useRef<CanvasClient | null>(null);
 
   useEffect(() => {
-    // Initialize CanvasClient and register the canvas wallet
     const client = new CanvasClient();
     registerCanvasWallet(client);
     canvasClientRef.current = client;
@@ -26,11 +27,10 @@ export default function UnlockBlinks() {
     const startClient = async () => {
       const response = await client.ready();
       if (response) {
-        setIsReady(true); 
+        setIsReady(true);
 
-        const user : any = response.untrusted.user;
+        const user: any = response.untrusted.user;
         setUsername(user.username || "User");
-       
       }
     };
 
@@ -57,11 +57,13 @@ export default function UnlockBlinks() {
     }
 
     try {
-      const response = await canvasClientRef.current.connectWallet("solana:103");
+      const response = await canvasClientRef.current.connectWallet(
+        "solana:103"
+      );
       if (response && response.untrusted.success) {
         setAddress(response.untrusted.address);
         localStorage.setItem("userAddress", response.untrusted.address);
-        setErrorMessage(null); // Clear any previous error message
+        setErrorMessage(null);
       } else {
         setErrorMessage("Failed to connect wallet. Please try again.");
       }
@@ -73,7 +75,9 @@ export default function UnlockBlinks() {
 
   const handlePayment = async () => {
     if (!address) {
-      setErrorMessage("Wallet is not connected. Please connect your wallet first.");
+      setErrorMessage(
+        "Wallet is not connected. Please connect your wallet first."
+      );
       return;
     }
 
@@ -92,13 +96,10 @@ export default function UnlockBlinks() {
       if (response.ok) {
         const { transaction, token } = await response.json();
 
-        // Decode the transaction from Base58
         const decodedTx = bs58.decode(transaction);
 
-        // Encode the Buffer back to a Base58 string
         const unsignedTx = bs58.encode(decodedTx);
 
-        // Sign and send the transaction with the user's wallet
         const results = await canvasClientRef.current?.signAndSendTransaction({
           unsignedTx: unsignedTx,
           awaitCommitment: "confirmed",
@@ -122,7 +123,9 @@ export default function UnlockBlinks() {
       }
     } catch (error) {
       setTransactionStatus("Transaction failed.");
-      setErrorMessage("An error occurred during the transaction. Please try again.");
+      setErrorMessage(
+        "An error occurred during the transaction. Please try again."
+      );
       console.error("Payment error:", error);
     }
   };
@@ -131,19 +134,24 @@ export default function UnlockBlinks() {
     return <p className="text-center">Loading...</p>;
   }
 
-  // Render only the BlinksGPT component if access is granted
   if (accessGranted) {
     return <BlinksGPT />;
   }
 
   return (
-   <div className="flex flex-col items-center justify-center h-screen">
-    <h1 className="text-2xl mb-4">💗 Welcome {username ? username : "User"} to the BlinksGPT 🤖</h1>
-    {address ? (
-      <h3 className="text-sm mb-4 text-gray-500"><strong>Connected Wallet Address:</strong>{" "}{address}</h3>
-    ) : (
-      <p className="text-sm mb-4 text-red-500">Please connect your wallet to proceed.</p>
-    )}
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-2xl mb-4">
+        💗 Welcome {username ? username : "User"} to the BlinksGPT 🤖
+      </h1>
+      {address ? (
+        <h3 className="text-sm mb-4 text-gray-500">
+          <strong>Connected Wallet Address:</strong> {address}
+        </h3>
+      ) : (
+        <p className="text-sm mb-4 text-red-500">
+          Please connect your wallet to proceed.
+        </p>
+      )}
       {!address ? (
         <Button onClick={handleConnectWallet}>Connect Wallet</Button>
       ) : (
@@ -158,16 +166,18 @@ export default function UnlockBlinks() {
       )}
 
       {transactionStatus && (
-        <p className={`mt-4 ${transactionStatus.includes("successful") ? "text-green-500" : "text-red-500"}`}>
+        <p
+          className={`mt-4 ${
+            transactionStatus.includes("successful")
+              ? "text-green-500"
+              : "text-red-500"
+          }`}
+        >
           {transactionStatus}
         </p>
       )}
 
-      {errorMessage && (
-        <p className="mt-2 text-red-500">
-          {errorMessage}
-        </p>
-      )}
+      {errorMessage && <p className="mt-2 text-red-500">{errorMessage}</p>}
     </div>
   );
 }

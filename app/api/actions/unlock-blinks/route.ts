@@ -74,7 +74,6 @@ export const POST = async (req: Request) => {
       });
     }
 
-    // Use the provided public key to create the transaction
     const userPublicKey = new PublicKey(publicKey);
 
     const connection = new Connection(
@@ -96,22 +95,21 @@ export const POST = async (req: Request) => {
       lastValidBlockHeight,
     }).add(transferSolInstruction);
 
-    // Serialize the transaction to send back to the client
-    const serializedTransaction = bs58.encode(transaction.serialize({
-      requireAllSignatures: false,
-    }));  // Base58 encoding
-    
+    const serializedTransaction = bs58.encode(
+      transaction.serialize({
+        requireAllSignatures: false,
+      })
+    );
 
-    // Generate an HMAC token based on the `publicKey`
-    const secretKey = process.env.SECRET_KEY || ""; // Secret key used for HMAC
+    const secretKey = process.env.SECRET_KEY || "";
     const token = createHmac("sha256", secretKey)
       .update(publicKey)
-      .digest("hex"); // Generate HMAC token
+      .digest("hex");
 
     const payload: ExtendedActionPostResponse = {
       transaction: serializedTransaction,
       message: `Pay ${amount} SOL to unlock BlinksGPT`,
-      token, // Include the HMAC token in the response
+      token,
     };
 
     return new Response(JSON.stringify(payload), {
